@@ -5,7 +5,7 @@
     "type": "modifier",
     "version": "1.0.0",
     "settings": {
-      "endpoint": "http://localhost:5577/webhook",
+      "endpoint": "https://legalaidsummarybot.vercel.app/webhook",
       "auth_token": "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",
       "trigger_prefix": "/legal"
     },

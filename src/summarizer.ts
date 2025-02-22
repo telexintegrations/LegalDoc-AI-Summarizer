@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_TOKEN = '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'; // Replace with your token
+const API_TOKEN = process.env.HUGGING_FACE_TOKEN;
+
+if (!API_TOKEN) {
+  throw new Error('HUGGING_FACE_TOKEN is not set in .env');
+}
 
 export async function summarizeText(text: string): Promise<string> {
   try {
@@ -10,7 +14,7 @@ export async function summarizeText(text: string): Promise<string> {
       { inputs: text },
       {
         headers: {
-          Authorization: `Bearer ${API_TOKEN}`, // Use template literal
+          Authorization: `Bearer ${API_TOKEN}`,
         },
       }
     );
@@ -24,11 +28,3 @@ export async function summarizeText(text: string): Promise<string> {
     return 'Error summarizing text';
   }
 }
-
-
-
-
-
-
-
-//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

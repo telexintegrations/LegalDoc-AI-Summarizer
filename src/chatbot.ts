@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_TOKEN = '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'; // Same token as above
+const API_TOKEN = process.env.HUGGING_FACE_TOKEN;
+
+if (!API_TOKEN) {
+  throw new Error('HUGGING_FACE_TOKEN is not set in .env');
+}
 
 export async function getLegalResponse(query: string): Promise<string> {
   try {
@@ -29,14 +33,3 @@ export async function getLegalResponse(query: string): Promise<string> {
     return 'Error processing your question';
   }
 }
-
-
-
-
-
-
-
-
-
-
-//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
