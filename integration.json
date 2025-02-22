@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "settings": {
       "endpoint": "https://legalaidsummarybot.vercel.app/webhook",
-      "auth_token": "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",
+      "auth_token": "API_TOKEN = process.env.HUGGING_FACE_TOKEN;",
       "trigger_prefix": "/legal"
     },
     "events": [
