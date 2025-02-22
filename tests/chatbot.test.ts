@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { getLegalResponse } from '../src/chatbot';
 
 describe('chatbot', () => {

@@ -1,12 +1,10 @@
 import axios from 'axios';
 
-const API_TOKEN = process.env.HUGGING_FACE_TOKEN;
-
-if (!API_TOKEN) {
-  throw new Error('HUGGING_FACE_TOKEN is not set in .env');
-}
-
 export async function summarizeText(text: string): Promise<string> {
+  const API_TOKEN = process.env.HUGGING_FACE_TOKEN;
+  if (!API_TOKEN) {
+    throw new Error('HUGGING_FACE_TOKEN is not set in .env');
+  }
   try {
     console.log('Summarizing text:', text);
     const response = await axios.post(

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { summarizeText } from '../src/summarizer';
 
 describe('summarizer', () => {

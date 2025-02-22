@@ -1,12 +1,10 @@
 import axios from 'axios';
 
-const API_TOKEN = process.env.HUGGING_FACE_TOKEN;
-
-if (!API_TOKEN) {
-  throw new Error('HUGGING_FACE_TOKEN is not set in .env');
-}
-
 export async function getLegalResponse(query: string): Promise<string> {
+  const API_TOKEN = process.env.HUGGING_FACE_TOKEN;
+  if (!API_TOKEN) {
+    throw new Error('HUGGING_FACE_TOKEN is not set in .env');
+  }
   try {
     console.log('Chatbot query:', query);
     const response = await axios.post(
