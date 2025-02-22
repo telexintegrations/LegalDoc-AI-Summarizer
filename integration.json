@@ -1,0 +1,22 @@
+{
+    "id": "legalaidsummarybot",
+    "name": "LegalAidSummaryBot",
+    "description": "Summarizes text messages and provides legal assistance via /legal commands in a Telex channel.",
+    "type": "modifier",
+    "version": "1.0.0",
+    "settings": {
+      "endpoint": "http://localhost:5577/webhook",
+      "auth_token": "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",
+      "trigger_prefix": "/legal"
+    },
+    "events": [
+      "message.created",
+      "file.uploaded"
+    ]
+  }
+
+
+
+
+
+  /*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*/
