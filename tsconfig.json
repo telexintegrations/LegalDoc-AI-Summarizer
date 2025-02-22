@@ -1,13 +1,13 @@
 {
-    "compilerOptions": {
-      "target": "ES2020",
-      "module": "commonjs",
-      "outDir": "./dist",
-      "rootDir": "./src",
-      "strict": true,
-      "esModuleInterop": true,
-      "moduleResolution": "node" // Add this if missing
-    },
-    "include": ["src/**/*"],       // Ensure this includes all src files
-    "exclude": ["node_modules"]    // Exclude node_modules
-  }
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": ".", // Change to root of project (includes src/ and tests/)
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node"
+  },
+  "include": ["src/**/*", "tests/**/*"], // Keep this to include all files
+  "exclude": ["node_modules"]
+}

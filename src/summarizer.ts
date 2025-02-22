@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-async function withRetry(fn: () => Promise<any>, retries = 3, delay = 5000): Promise<any> {
+async function withRetry(fn: () => Promise<any>, retries = 2, delay = 3000): Promise<any> {
   for (let i = 0; i < retries; i++) {
     try {
       return await fn();
