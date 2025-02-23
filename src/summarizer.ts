@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-async function withRetry(fn: () => Promise<any>, retries = 3, delay = 5000): Promise<any> {
+async function withRetry(fn: () => Promise<any>, retries = 3, delay = 10000): Promise<any> {
   for (let i = 0; i < retries; i++) {
     try {
       return await fn();
@@ -28,7 +28,7 @@ export async function summarizeText(text: string): Promise<string> {
         { inputs: text },
         {
           headers: { Authorization: `Bearer ${API_TOKEN}` },
-          timeout: 60000 // Increase to 60 seconds
+          timeout: 1200000 // Increase to 60 seconds
         }
       )
     );

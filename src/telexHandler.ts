@@ -1,4 +1,4 @@
-import { summarizeText } from './summarizer';
+﻿import { summarizeText } from './summarizer';
 import { getLegalResponse } from './chatbot';
 import axios from 'axios';
 import pdfParse from 'pdf-parse';
@@ -13,6 +13,14 @@ interface TelexEvent {
 interface TelexResponse {
   text: string;
   channelId: string;
+}
+
+async function summarizeLongText(text: string): Promise<string> {
+  const maxLength = 500; // Max characters per chunk
+  if (text.length <= maxLength) return summarizeText(text);
+  const chunks = text.match(new RegExp(`.{1,${maxLength}}`, 'g')) || [];
+  const summaries = await Promise.all(chunks.map(chunk => summarizeText(chunk)));
+  return summaries.join(' ');
 }
 
 async function withRetry(fn: () => Promise<any>, retries = 3, delay = 5000): Promise<any> {
@@ -80,7 +88,7 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
         return { text: 'Error: No text found in file.', channelId };
       }
 
-      const summary = await withRetry(() => summarizeText(fileText));
+      const summary = await withRetry(() => summarizeLongText(fileText));
       return { text: `File Summary: ${summary}`, channelId };
     } catch (error) {
       console.error('File processing error:', (error as Error).message);
