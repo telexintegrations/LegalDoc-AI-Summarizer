@@ -23,12 +23,11 @@ This integration enhances Telex channels by:
 - Examples in README (from previous versions).
 
 ## Deployment
-- **Vercel URL**: `https://legal-doc-ai-summarizer-eacp.vercel.app/webhook`
+- **Vercel URL**: `https://legaldoc-ai-summarizer.onrender.com/webhookk`
 - **integration.json URL**: `https://raw.githubusercontent.com/telexintegrations/LegalDoc-AI-Summarizer/main/integration.json`
 - **Steps**:
-  1. Deployed with `vercel --prod`.
-  2. Set `HUGGING_FACE_TOKEN` in Vercel Environment Variables.
-  3. Configured `vercel.json` for Node.js server.
+  1. Deployed with Render (Build Command: `npm install && npm run build`, Start Command: `node ./dist/index.js`).
+  2. Set `HUGGING_FACE_TOKEN` in Render Environment Variables.
 
 ## Screenshots
 - **Text Summary**: ![Text Summary](screenshots/text-summary.png)
