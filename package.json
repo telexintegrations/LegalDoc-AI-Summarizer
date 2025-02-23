@@ -4,8 +4,7 @@
   "description": "Telex Modifier Integration for Legal Document Summarization",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node /opt/render/project/dist/index.js",
-    "dev": "nodemon dist/index.js",
+   "start": "nodemon src/index.ts --port 5577",
     "build": "tsc",
     "test": "jest --config jest.config.ts"
   },
