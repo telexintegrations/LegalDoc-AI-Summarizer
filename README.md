@@ -1,4 +1,4 @@
-# LegalAidSummaryBot
+﻿# LegalAidSummaryBot
 
 A Telex Modifier Integration that summarizes text messages, uploaded files (PDF and DOCX), and provides legal assistance via `/legal` commands.
 
@@ -33,3 +33,5 @@ This integration enhances Telex channels by:
 - **Text Summary**: ![Text Summary](screenshots/text-summary.png)
 - **PDF Summary**: ![PDF Summary](screenshots/pdf-summary.png)
 - **Chatbot Response**: ![Chatbot Response](screenshots/chatbot-response.png)
+
+[Paste your current README.md content, adding:]\n\n## Telex Testing\n- Tested in Telex test organization with channel ID: [your-telex-channel-id].\n- Webhook URL: https://ping.telex.im/v1/webhooks/0195387e-00d5-733c-b972-d824624c6dbd.\n

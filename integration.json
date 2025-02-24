@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "settings": {
       "endpoint": "https://legaldoc-ai-summarizer.onrender.com/webhook",
-      "auth_token": "API_TOKEN = process.env.HUGGING_FACE_TOKEN;",
+      "auth_token": "YOUR_TELEX_AUTH_TOKEN_HERE",
       "trigger_prefix": "/legal"
     },
     "events": [
