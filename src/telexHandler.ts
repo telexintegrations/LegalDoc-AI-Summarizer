@@ -6,7 +6,7 @@ import * as mammoth from 'mammoth';
 
 interface TelexEvent {
   type: string;
-  channel_id: string;
+  channel_id: string; // Consistent with payload
   settings?: Array<{ label: string; type: string; default: any }>;
   message?: { text: string };
   file?: { url: string };
