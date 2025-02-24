@@ -26,7 +26,12 @@ app.post('/webhook', async (req: Request, res: Response) => {
     res.json(response);
   } catch (error) {
     console.error('Error:', (error as Error).message);
-    res.status(500).json({ error: 'Something went wrong' });
+    res.status(500).json({
+      event_name: 'message_formatted',
+      message: 'Error: Something went wrong',
+      status: 'error',
+      username: 'LegalAidSummaryBot'
+    });
   }
 });
 

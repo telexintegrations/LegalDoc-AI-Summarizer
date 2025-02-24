@@ -6,4 +6,4 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config(); // Load .env synchronously
 //console.log('Loaded token:', process.env.HUGGING_FACE_TOKEN); // Debug
-//import './server'; // Start server after .env is loaded
+require("./server"); // Start server after .env is loaded

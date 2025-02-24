@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.summarizeText = summarizeText;
 const axios_1 = __importDefault(require("axios"));
-async function withRetry(fn, retries = 2, delay = 3000) {
+async function withRetry(fn, retries = 3, delay = 10000) {
     for (let i = 0; i < retries; i++) {
         try {
             return await fn();
@@ -30,7 +30,7 @@ async function summarizeText(text) {
         console.log('Summarizing text:', text);
         const response = await withRetry(() => axios_1.default.post('https://api-inference.huggingface.co/models/facebook/bart-large-cnn', { inputs: text }, {
             headers: { Authorization: `Bearer ${API_TOKEN}` },
-            timeout: 30000
+            timeout: 1200000 // Increase to 60 seconds
         }));
         console.log('API response:', response.data);
         return response.data[0].summary_text || 'Could not summarize';

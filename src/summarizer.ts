@@ -28,7 +28,7 @@ export async function summarizeText(text: string): Promise<string> {
         { inputs: text },
         {
           headers: { Authorization: `Bearer ${API_TOKEN}` },
-          timeout: 1200000 // Increase to 60 seconds
+          timeout: 180000 // 3 minutes
         }
       )
     );

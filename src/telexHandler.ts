@@ -6,24 +6,20 @@ import * as mammoth from 'mammoth';
 
 interface TelexEvent {
   type: string;
-  message?: { text: string; channelId: string };
-  file?: { url: string; channelId: string };
+  channel_id: string;
+  settings?: Array<{ label: string; type: string; default: any }>;
+  message?: { text: string };
+  file?: { url: string };
 }
 
 interface TelexResponse {
-  text: string;
-  channelId: string;
+  event_name: string;
+  message: string;
+  status: string;
+  username: string;
 }
 
-async function summarizeLongText(text: string): Promise<string> {
-  const maxLength = 500; // Max characters per chunk
-  if (text.length <= maxLength) return summarizeText(text);
-  const chunks = text.match(new RegExp(`.{1,${maxLength}}`, 'g')) || [];
-  const summaries = await Promise.all(chunks.map(chunk => summarizeText(chunk)));
-  return summaries.join(' ');
-}
-
-async function withRetry(fn: () => Promise<any>, retries = 3, delay = 5000): Promise<any> {
+async function withRetry(fn: () => Promise<any>, retries = 3, delay = 10000): Promise<any> {
   for (let i = 0; i < retries; i++) {
     try {
       return await fn();
@@ -38,36 +34,116 @@ async function withRetry(fn: () => Promise<any>, retries = 3, delay = 5000): Pro
   }
 }
 
+async function summarizeLongText(text: string): Promise<string> {
+  const maxLength = 500;
+  if (text.length <= maxLength) return summarizeText(text);
+  const chunks = text.match(new RegExp(`.{1,${maxLength}}`, 'g')) || [];
+  const summaries = await Promise.all(chunks.map(chunk => summarizeText(chunk)));
+  return summaries.join(' ');
+}
+
 export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse> {
-  if (!event) {
-    return { text: 'Error: Invalid event format.', channelId: 'unknown' };
+  if (!event || !event.channel_id) {
+    return {
+      event_name: 'message_formatted',
+      message: 'Error: Invalid event format. Missing channel_id.',
+      status: 'error',
+      username: 'LegalAidSummaryBot'
+    };
   }
 
-  if (event.type === 'message.created' && event.message) {
-    const { text, channelId } = event.message;
-    if (!text || !channelId) {
-      return { text: 'Error: Message must include text and channelId.', channelId: channelId || 'unknown' };
+  let maxMessageLength = 500;
+  let repeatWords: string[] = [];
+  let repetitions = 1;
+
+  if (event.settings) {
+    for (const setting of event.settings) {
+      switch (setting.label) {
+        case 'Max Message Length':
+        case 'maxMessageLength':
+          maxMessageLength = setting.default as number || 500;
+          break;
+        case 'repeatWords':
+          repeatWords = (setting.default as string)?.split(', ') || [];
+          break;
+        case 'noOfRepetitions':
+          repetitions = setting.default as number || 1;
+          break;
+      }
     }
+  }
+
+  if (!event.type) {
+    if (event.message && event.message.text) {
+      event.type = 'message.created';
+    } else if (event.file && event.file.url) {
+      event.type = 'file.uploaded';
+    } else {
+      return {
+        event_name: 'message_formatted',
+        message: 'Error: Unsupported event format. Missing type.',
+        status: 'error',
+        username: 'LegalAidSummaryBot'
+      };
+    }
+  }
+
+  if (event.type === 'message.created' && event.message && event.message.text) {
+    const text = event.message.text;
+    if (!text) {
+      return {
+        event_name: 'message_formatted',
+        message: 'Error: Message must include text.',
+        status: 'error',
+        username: 'LegalAidSummaryBot'
+      };
+    }
+
+    let formattedMessage = text;
     if (text.startsWith('/legal')) {
       const query = text.replace('/legal', '').trim();
       const answer = await getLegalResponse(query);
-      return { text: answer, channelId };
+      formattedMessage = answer;
     } else {
-      const summary = await summarizeText(text);
-      return { text: `${text}\nSummary: ${summary}`, channelId };
+      const summary = await summarizeLongText(text);
+      formattedMessage = `${text}\nSummary: ${summary}`;
     }
+
+    if (maxMessageLength && formattedMessage.length > maxMessageLength) {
+      formattedMessage = formattedMessage.substring(0, maxMessageLength);
+    }
+    for (const word of repeatWords) {
+      formattedMessage = formattedMessage.replace(new RegExp(`\\b${word}\\b`, 'g'), word + ' '.repeat(repetitions));
+    }
+
+    return {
+      event_name: 'message_formatted',
+      message: formattedMessage,
+      status: 'success',
+      username: 'LegalAidSummaryBot'
+    };
   }
 
-  if (event.type === 'file.uploaded' && event.file) {
-    const { url, channelId } = event.file;
-    if (!url || !channelId) {
-      return { text: 'Error: File event must include URL and channelId.', channelId: channelId || 'unknown' };
+  if (event.type === 'file.uploaded' && event.file && event.file.url) {
+    const url = event.file.url;
+    if (!url) {
+      return {
+        event_name: 'message_formatted',
+        message: 'Error: File event must include URL.',
+        status: 'error',
+        username: 'LegalAidSummaryBot'
+      };
     }
 
     try {
-      const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000 });
+      const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 180000 });
       if (!response.data || !(response.data instanceof Buffer)) {
-        return { text: 'Error: Invalid file data received.', channelId };
+        return {
+          event_name: 'message_formatted',
+          message: 'Error: Invalid file data received.',
+          status: 'error',
+          username: 'LegalAidSummaryBot'
+        };
       }
 
       const fileBuffer = Buffer.from(response.data);
@@ -80,25 +156,64 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
         const docxData = await mammoth.extractRawText({ buffer: fileBuffer });
         fileText = docxData.value;
       } else {
-        return { text: 'Error: Unsupported file type. Only .pdf and .docx are supported.', channelId };
+        return {
+          event_name: 'message_formatted',
+          message: 'Error: Unsupported file type. Only .pdf and .docx are supported.',
+          status: 'error',
+          username: 'LegalAidSummaryBot'
+        };
       }
 
       console.log('Extracted file text:', fileText);
       if (!fileText) {
-        return { text: 'Error: No text found in file.', channelId };
+        return {
+          event_name: 'message_formatted',
+          message: 'Error: No text found in file.',
+          status: 'error',
+          username: 'LegalAidSummaryBot'
+        };
       }
 
-      const summary = await withRetry(() => summarizeLongText(fileText));
-      return { text: `File Summary: ${summary}`, channelId };
+      const summary = await summarizeLongText(fileText);
+      let formattedMessage = `File Summary: ${summary || 'Error summarizing text'}`;
+
+      if (maxMessageLength && formattedMessage.length > maxMessageLength) {
+        formattedMessage = formattedMessage.substring(0, maxMessageLength);
+      }
+      for (const word of repeatWords) {
+        formattedMessage = formattedMessage.replace(new RegExp(`\\b${word}\\b`, 'g'), word + ' '.repeat(repetitions));
+      }
+
+      return {
+        event_name: 'message_formatted',
+        message: formattedMessage,
+        status: 'success',
+        username: 'LegalAidSummaryBot'
+      };
     } catch (error) {
       console.error('File processing error:', (error as Error).message);
       if (axios.isAxiosError(error) && error.response) {
         console.error('Error details:', error.response.data.toString());
-        return { text: `Error: Failed to process file - ${error.response.statusText}`, channelId };
+        return {
+          event_name: 'message_formatted',
+          message: 'Error: Failed to process file.',
+          status: 'error',
+          username: 'LegalAidSummaryBot'
+        };
       }
-      return { text: 'Error: Failed to process file.', channelId };
+      return {
+        event_name: 'message_formatted',
+        message: 'Error: Failed to process file.',
+        status: 'error',
+        username: 'LegalAidSummaryBot'
+      };
     }
   }
 
-  return { text: 'Error: Unsupported event type.', channelId: 'unknown' };
+  return {
+    event_name: 'message_formatted',
+    message: 'Error: Unsupported event type.',
+    status: 'error',
+    username: 'LegalAidSummaryBot'
+  };
 }
