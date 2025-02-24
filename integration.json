@@ -1,22 +1,45 @@
 {
-    "id": "legalaidsummarybot",
-    "name": "LegalAidSummaryBot",
-    "description": "Summarizes text messages and provides legal assistance via /legal commands in a Telex channel.",
-    "type": "modifier",
-    "version": "1.0.0",
-    "settings": {
-      "endpoint": "https://legaldoc-ai-summarizer.onrender.com/webhook",
-      "auth_token": "YOUR_TELEX_AUTH_TOKEN_HERE",
-      "trigger_prefix": "/legal"
+  "data": {
+    "date": {
+      "created_at": "2025-02-25",
+      "updated_at": "2025-02-25"
     },
-    "events": [
-      "message.created",
-      "file.uploaded"
-    ]
+    "descriptions": {
+      "app_description": "LegalAidSummaryBot summarizes text messages, uploaded PDFs/DOCX, and provides legal assistance via /legal commands in Telex channels.",
+      "app_logo": "https://github.com/telexintegrations/LegalDoc-AI-Summarizer/raw/main/screenshots/logo.png",
+      "app_name": "LegalAidSummaryBot",
+      "app_url": "https://github.com/telexintegrations/LegalDoc-AI-Summarizer",
+      "background_color": "#FFFFFF"
+    },
+    "integration_category": "Productivity",
+    "integration_type": "modifier",
+    "is_active": true,
+    "key_features": [
+      "Text message summarization",
+      "PDF and DOCX file summarization",
+      "Legal assistance via /legal commands",
+      "Real-time processing in Telex channels"
+    ],
+    "settings": [
+      {
+        "label": "Endpoint",
+        "type": "text",
+        "required": true,
+        "default": "https://legaldoc-ai-summarizer.onrender.com/webhook"
+      },
+      {
+        "label": "Auth Token",
+        "type": "text",
+        "required": false,
+        "default": "YOUR_TELEX_AUTH_TOKEN_HERE" 
+      },
+      {
+        "label": "Trigger Prefix",
+        "type": "text",
+        "required": true,
+        "default": "/legal"
+      }
+    ],
+    "target_url": "https://legaldoc-ai-summarizer.onrender.com/webhook"
   }
-
-
-
-
-
-  
+}
