@@ -6,7 +6,8 @@ import * as mammoth from 'mammoth';
 
 interface TelexEvent {
   type: string;
-  channel_id: string; // Consistent with payload
+  channel_id?: string;  // Make optional
+  channelId?: string;   // Add alternative field
   settings?: Array<{ label: string; type: string; default: any }>;
   message?: { text: string };
   file?: { url: string };
@@ -43,10 +44,17 @@ async function summarizeLongText(text: string): Promise<string> {
 }
 
 export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse> {
-  if (!event || !event.channel_id) {
+  // Debug log the entire event object
+  console.log('Received event:', JSON.stringify(event));
+  
+  // Check for both snake_case and camelCase channelId
+  const channelId = event.channel_id || event.channelId;
+  
+  if (!event || !channelId) {
+    console.error('Missing channel ID in event:', JSON.stringify(event));
     return {
       event_name: 'message_formatted',
-      message: 'Error: Invalid event format. Missing channel_id.',
+      message: 'Error: Invalid event format. Missing channelId.',
       status: 'error',
       username: 'LegalAidSummaryBot'
     };
@@ -79,6 +87,7 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
     } else if (event.file && event.file.url) {
       event.type = 'file.uploaded';
     } else {
+      console.error('Unknown event type:', JSON.stringify(event));
       return {
         event_name: 'message_formatted',
         message: 'Error: Unsupported event format. Missing type.',
@@ -88,9 +97,10 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
     }
   }
 
-  if (event.type === 'message.created' && event.message && event.message.text) {
-    const text = event.message.text;
-    if (!text) {
+  if (event.type === 'message.created' && event.message) {
+    // Check if message is present but text might be undefined
+    if (!event.message.text) {
+      console.error('Missing text in message:', JSON.stringify(event));
       return {
         event_name: 'message_formatted',
         message: 'Error: Message must include text.',
@@ -99,19 +109,32 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
       };
     }
 
+    const text = event.message.text;
     let formattedMessage = text;
+    
     if (text.startsWith('/legal')) {
       const query = text.replace('/legal', '').trim();
-      const answer = await getLegalResponse(query);
-      formattedMessage = answer;
+      try {
+        const answer = await getLegalResponse(query);
+        formattedMessage = answer;
+      } catch (error) {
+        console.error('Error getting legal response:', error);
+        formattedMessage = 'Error processing legal query. Please try again.';
+      }
     } else {
-      const summary = await summarizeLongText(text);
-      formattedMessage = `${text}\nSummary: ${summary}`;
+      try {
+        const summary = await summarizeLongText(text);
+        formattedMessage = `${text}\nSummary: ${summary}`;
+      } catch (error) {
+        console.error('Error summarizing text:', error);
+        formattedMessage = text + '\nError generating summary.';
+      }
     }
 
     if (maxMessageLength && formattedMessage.length > maxMessageLength) {
       formattedMessage = formattedMessage.substring(0, maxMessageLength);
     }
+    
     for (const word of repeatWords) {
       formattedMessage = formattedMessage.replace(new RegExp(`\\b${word}\\b`, 'g'), word + ' '.repeat(repetitions));
     }
@@ -124,9 +147,10 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
     };
   }
 
-  if (event.type === 'file.uploaded' && event.file && event.file.url) {
-    const url = event.file.url;
-    if (!url) {
+  if (event.type === 'file.uploaded' && event.file) {
+    // Check if file is present but url might be undefined
+    if (!event.file.url) {
+      console.error('Missing URL in file event:', JSON.stringify(event));
       return {
         event_name: 'message_formatted',
         message: 'Error: File event must include URL.',
@@ -135,9 +159,15 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
       };
     }
 
+    const url = event.file.url;
+
     try {
-      const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 180000 });
-      if (!response.data || !(response.data instanceof Buffer)) {
+      console.log(`Attempting to download file from: ${url}`);
+      const response = await withRetry(() => 
+        axios.get(url, { responseType: 'arraybuffer', timeout: 180000 })
+      );
+      
+      if (!response.data) {
         return {
           event_name: 'message_formatted',
           message: 'Error: Invalid file data received.',
@@ -149,10 +179,12 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
       const fileBuffer = Buffer.from(response.data);
       let fileText: string;
 
-      if (url.endsWith('.pdf')) {
+      if (url.toLowerCase().endsWith('.pdf')) {
+        console.log('Processing PDF file...');
         const pdfData = await pdfParse(fileBuffer);
         fileText = pdfData.text;
-      } else if (url.endsWith('.docx')) {
+      } else if (url.toLowerCase().endsWith('.docx')) {
+        console.log('Processing DOCX file...');
         const docxData = await mammoth.extractRawText({ buffer: fileBuffer });
         fileText = docxData.value;
       } else {
@@ -164,8 +196,8 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
         };
       }
 
-      console.log('Extracted file text:', fileText);
-      if (!fileText) {
+      console.log(`Extracted ${fileText.length} characters of text from file`);
+      if (!fileText || fileText.trim().length === 0) {
         return {
           event_name: 'message_formatted',
           message: 'Error: No text found in file.',
@@ -174,42 +206,48 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
         };
       }
 
-      const summary = await summarizeLongText(fileText);
-      let formattedMessage = `File Summary: ${summary || 'Error summarizing text'}`;
+      try {
+        const summary = await summarizeLongText(fileText);
+        let formattedMessage = `File Summary: ${summary || 'Error summarizing text'}`;
 
-      if (maxMessageLength && formattedMessage.length > maxMessageLength) {
-        formattedMessage = formattedMessage.substring(0, maxMessageLength);
-      }
-      for (const word of repeatWords) {
-        formattedMessage = formattedMessage.replace(new RegExp(`\\b${word}\\b`, 'g'), word + ' '.repeat(repetitions));
-      }
+        if (maxMessageLength && formattedMessage.length > maxMessageLength) {
+          formattedMessage = formattedMessage.substring(0, maxMessageLength);
+        }
+        
+        for (const word of repeatWords) {
+          formattedMessage = formattedMessage.replace(new RegExp(`\\b${word}\\b`, 'g'), word + ' '.repeat(repetitions));
+        }
 
-      return {
-        event_name: 'message_formatted',
-        message: formattedMessage,
-        status: 'success',
-        username: 'LegalAidSummaryBot'
-      };
-    } catch (error) {
-      console.error('File processing error:', (error as Error).message);
-      if (axios.isAxiosError(error) && error.response) {
-        console.error('Error details:', error.response.data.toString());
         return {
           event_name: 'message_formatted',
-          message: 'Error: Failed to process file.',
+          message: formattedMessage,
+          status: 'success',
+          username: 'LegalAidSummaryBot'
+        };
+      } catch (error) {
+        console.error('Error summarizing file text:', error);
+        return {
+          event_name: 'message_formatted',
+          message: 'Error: Failed to summarize file content.',
           status: 'error',
           username: 'LegalAidSummaryBot'
         };
       }
+    } catch (error) {
+      console.error('File processing error:', (error as Error).message);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Error details:', error.response.data.toString());
+      }
       return {
         event_name: 'message_formatted',
-        message: 'Error: Failed to process file.',
+        message: 'Error: Failed to process file. Please try again later.',
         status: 'error',
         username: 'LegalAidSummaryBot'
       };
     }
   }
 
+  console.error('Unsupported event type:', event.type);
   return {
     event_name: 'message_formatted',
     message: 'Error: Unsupported event type.',
