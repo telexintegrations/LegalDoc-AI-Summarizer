@@ -1,13 +1,17 @@
 ﻿import express, { Express, Request, Response } from 'express';
 import { handleTelexEvent } from './telexHandler';
-import {integrationConfig} from './../integration'
+import { integrationConfig } from './integrationconfig';
+
 
 const app: Express = express();
 app.use(express.json());
 
 app.get('/integration-json', (req: Request, res: Response) => {
   res.json(integrationConfig)
+
 });
+
+
 
 app.post('/webhook', async (req: Request, res: Response) => {
   try {
