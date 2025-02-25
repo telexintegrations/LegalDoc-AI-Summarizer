@@ -1,22 +1,8 @@
 ﻿import express, { Express, Request, Response } from 'express';
-import { handleTelexEvent } from '../src/telexHandler';
-import path from 'path';
+import { handleTelexEvent } from './telexHandler';
 
 const app: Express = express();
 app.use(express.json());
-app.use('/public', express.static(path.join(__dirname, '../public'))); // Serve public folder
-
-export default async (req: Request, res: Response) => {
-  try {
-    const event = req.body;
-    console.log('Received event:', event);
-    const response = await handleTelexEvent(event);
-    res.json(response);
-  } catch (error) {
-    console.error('Error:', (error as Error).message);
-    res.status(500).json({ error: 'Something went wrong' });
-  }
-};
 
 app.post('/webhook', async (req: Request, res: Response) => {
   try {

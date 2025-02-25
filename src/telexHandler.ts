@@ -6,8 +6,9 @@ import * as mammoth from 'mammoth';
 
 interface TelexEvent {
   type: string;
-  channel_id?: string;  // Make optional
-  channelId?: string;   // Add alternative field
+  channel_id?: string; // Optional, handle variations
+  channelid?: string;  // Optional for lowercase without underscore
+  channelId?: string;  // Optional for camelCase
   settings?: Array<{ label: string; type: string; default: any }>;
   message?: { text: string };
   file?: { url: string };
@@ -48,18 +49,15 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
   console.log('Received event:', JSON.stringify(event));
   
   // Check for both snake_case and camelCase channelId
-  const channelId = event.channel_id || event.channelId;
-  
-  if (!event || !channelId) {
-    console.error('Missing channel ID in event:', JSON.stringify(event));
+  const channel_id = event.channel_id || event.channelid || event.channelId;
+  if (!channel_id) {
     return {
       event_name: 'message_formatted',
-      message: 'Error: Invalid event format. Missing channelId.',
+      message: 'Error: Invalid event format. Missing channel_id, channelid, or channelId.',
       status: 'error',
       username: 'LegalAidSummaryBot'
     };
   }
-
   let maxMessageLength = 500;
   let repeatWords: string[] = [];
   let repetitions = 1;
@@ -97,9 +95,10 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
     }
   }
 
-  if (event.type === 'message.created' && event.message) {
+  if (event.type === 'message.created' && event.message && event.message.text) {
     // Check if message is present but text might be undefined
-    if (!event.message.text) {
+    const text = event.message.text;
+    if (!text) {
       console.error('Missing text in message:', JSON.stringify(event));
       return {
         event_name: 'message_formatted',
@@ -109,7 +108,6 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
       };
     }
 
-    const text = event.message.text;
     let formattedMessage = text;
     
     if (text.startsWith('/legal')) {
@@ -147,7 +145,7 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
     };
   }
 
-  if (event.type === 'file.uploaded' && event.file) {
+  if (event.type === 'file.uploaded' && event.file && event.file.url) {
     // Check if file is present but url might be undefined
     if (!event.file.url) {
       console.error('Missing URL in file event:', JSON.stringify(event));
@@ -160,14 +158,11 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
     }
 
     const url = event.file.url;
-
-    try {
-      console.log(`Attempting to download file from: ${url}`);
-      const response = await withRetry(() => 
-        axios.get(url, { responseType: 'arraybuffer', timeout: 180000 })
-      );
-      
-      if (!response.data) {
+    console.log(`Attempting to download file from: ${url}`);
+   try {
+    console.log(`Attempting to download file from: ${url}`);
+      const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 180000 });
+      if (!response.data || !(response.data instanceof Buffer)) {
         return {
           event_name: 'message_formatted',
           message: 'Error: Invalid file data received.',
@@ -179,6 +174,7 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
       const fileBuffer = Buffer.from(response.data);
       let fileText: string;
 
+      
       if (url.toLowerCase().endsWith('.pdf')) {
         console.log('Processing PDF file...');
         const pdfData = await pdfParse(fileBuffer);
