@@ -6,7 +6,7 @@
     },
     "descriptions": {
       "app_description": "LegalAidSummaryBot summarizes text messages, uploaded PDFs/DOCX, and provides legal assistance via /legal commands in Telex channels.",
-      "app_logo": "https://github.com/telexintegrations/LegalDoc-AI-Summarizer/raw/main/screenshots/logo.png",
+      "app_logo": "https://iili.io/J8LyOLN.png",
       "app_name": "LegalAidSummaryBot",
       "app_url": "https://github.com/telexintegrations/LegalDoc-AI-Summarizer",
       "background_color": "#FFFFFF"
