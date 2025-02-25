@@ -1,10 +1,12 @@
 ﻿import express, { Express, Request, Response } from 'express';
 import { handleTelexEvent } from './telexHandler';
 import { integrationConfig } from './integrationconfig';
+import cors from "cors";
 
 
 const app: Express = express();
 app.use(express.json());
+app.use(cors()); // use before the routes
 
 app.get('/integration-json', (req: Request, res: Response) => {
   res.json(integrationConfig)
