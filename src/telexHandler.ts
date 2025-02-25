@@ -1,11 +1,13 @@
 ﻿import { summarizeText } from './summarizer';
 import { getLegalResponse } from './chatbot';
 import axios from 'axios';
-import pdfParse from 'pdf-parse'; // Updated import for consistency
+import pdfParse from 'pdf-parse';
 import * as mammoth from 'mammoth';
 
 interface TelexEvent {
-  type: string;
+  type?: string;          // Optional, Telex might omit or use a different name
+  event_type?: string;    // Add to handle Telex’s possible format
+  action?: string;        // Add as another potential Telex field
   channel_id?: string;
   channelid?: string;
   channelId?: string;
@@ -74,22 +76,26 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
     }
   }
 
-  if (!event.type) {
+  // Determine type from any variation, default to 'message.created' if message exists, else fail
+  let type = event.type || event.event_type || event.action;
+  if (!type) {
     if (event.message && event.message.text) {
-      event.type = 'message.created';
+      type = 'message.created';
+      console.warn('No type found, assuming message.created for text:', event.message.text);
     } else if (event.file && event.file.url) {
-      event.type = 'file.uploaded';
+      type = 'file.uploaded';
+      console.warn('No type found, assuming file.uploaded for URL:', event.file.url);
     } else {
       return {
         event_name: 'message_formatted',
-        message: 'Error: Unsupported event format. Missing type.',
+        message: 'Error: Unsupported event format. Missing type, event_type, or action.',
         status: 'error',
         username: 'LegalAidSummaryBot'
       };
     }
   }
 
-  if (event.type === 'message.created' && event.message && event.message.text) {
+  if (type === 'message.created' && event.message && event.message.text) {
     const text = event.message.text;
     if (!text) {
       return {
@@ -125,7 +131,7 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
     };
   }
 
-  if (event.type === 'file.uploaded' && event.file && event.file.url) {
+  if (type === 'file.uploaded' && event.file && event.file.url) {
     const url = event.file.url;
     if (!url) {
       return {
