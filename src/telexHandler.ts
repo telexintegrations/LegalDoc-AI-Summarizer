@@ -5,9 +5,11 @@ import pdfParse from 'pdf-parse';
 import * as mammoth from 'mammoth';
 
 interface TelexEvent {
-  type?: string;          // Optional, Telex might omit or use a different name
-  event_type?: string;    // Add to handle Telex’s possible format
-  action?: string;        // Add as another potential Telex field
+  type?: string;
+  event_type?: string;
+  action?: string;
+  event?: string;        // Add to handle Telex’s possible format
+  action_type?: string;  // Add as another potential Telex field
   channel_id?: string;
   channelid?: string;
   channelId?: string;
@@ -47,6 +49,8 @@ async function summarizeLongText(text: string): Promise<string> {
 }
 
 export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse> {
+  console.log('Received Telex event:', JSON.stringify(event, null, 2));
+
   // Determine channel_id from any variation, default to 'unknown' with a warning
   const channel_id = event.channel_id || event.channelid || event.channelId || 'unknown';
   if (!event.channel_id && !event.channelid && !event.channelId) {
@@ -77,7 +81,7 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
   }
 
   // Determine type from any variation, default to 'message.created' if message exists, else fail
-  let type = event.type || event.event_type || event.action;
+  let type = event.type || event.event_type || event.action || event.event || event.action_type;
   if (!type) {
     if (event.message && event.message.text) {
       type = 'message.created';
@@ -88,7 +92,7 @@ export async function handleTelexEvent(event: TelexEvent): Promise<TelexResponse
     } else {
       return {
         event_name: 'message_formatted',
-        message: 'Error: Unsupported event format. Missing type, event_type, or action.',
+        message: 'Error: Unsupported event format. No recognizable event type found.',
         status: 'error',
         username: 'LegalAidSummaryBot'
       };
